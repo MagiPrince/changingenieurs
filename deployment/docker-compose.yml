@@ -1,0 +1,56 @@
+version: '3.2'
+
+services:
+
+    # set the db
+    db:
+        image: mysql
+        restart: always
+        environment:
+            MYSQL_DATABASE: changingenieurs
+            MYSQL_ROOT_PASSWORD: pass
+            MYSQL_USER: changingenieurs
+            MYSQL_PASSWORD: "changin"
+        volumes:
+            - ./db/sql/:/docker-entrypoint-initdb.d
+        ports:
+            - 3306:3306
+        networks:
+            changin:
+                ipv4_address: 10.20.10.10
+
+    # set the PHP engine
+    php:
+        image: php:7-fpm
+        build:
+            context: ./php
+            dockerfile: Dockerfile
+        networks:
+            changin:
+                ipv4_address: 10.20.10.20
+        volumes:
+            - ./web/dist:/usr/share/nginx/changin # same location than in web service
+      
+    # set the web server 
+    web:
+        image: nginx
+        restart: always
+        depends_on:
+            - php
+        ports:
+            - 80:80
+        networks:
+            changin:
+                ipv4_address: 10.20.10.30
+        volumes:
+            - ./web/default.conf:/etc/nginx/conf.d/default.conf
+            - ./web/dist:/usr/share/nginx/changin
+
+
+# create the bridge network
+networks:
+    changin:
+        driver: bridge
+        ipam:
+            config:
+                - subnet: "10.20.10.0/24"
